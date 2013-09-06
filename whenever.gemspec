@@ -8,6 +8,7 @@ Gem::Specification.new do |s|
   s.platform    = Gem::Platform::RUBY
   s.authors     = ["Javan Makhmali"]
   s.email       = ["javan@javan.us"]
+  s.license     = "MIT"
   s.homepage    = ""
   s.summary     = %q{Cron jobs in ruby.}
   s.description = %q{Clean ruby syntax for writing and deploying cron jobs.}
@@ -17,8 +18,14 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   s.add_dependency "chronic", ">= 0.6.3"
-  s.add_dependency "activesupport", ">= 2.3.4"
 
+  if RUBY_VERSION < "1.9"
+    s.add_dependency "activesupport", ">= 2.3.4", "< 4.0"
+  else
+    s.add_dependency "activesupport", ">= 2.3.4"
+  end
+
+  s.add_development_dependency "shoulda-matchers", "<= 2.0.0" if RUBY_VERSION < "1.9"
   s.add_development_dependency "shoulda", ">= 2.1.1"
   s.add_development_dependency "mocha", ">= 0.9.5"
   s.add_development_dependency "rake"

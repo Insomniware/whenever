@@ -35,6 +35,24 @@ class OutputDefaultDefinedJobsTest < Test::Unit::TestCase
     end
   end
 
+  context "A plain command with a job_template using a normal parameter" do
+    setup do
+      @output = Whenever.cron \
+      <<-file
+        set :job_template, "/bin/bash -l -c 'cd :path && :job'"
+        every 2.hours do
+          set :path, "/tmp"
+          command "blahblah"
+        end
+      file
+    end
+
+    should "output the command using that job_template" do
+      assert_match /^.+ .+ .+ .+ \/bin\/bash -l -c 'cd \/tmp \&\& blahblah'$/, @output
+    end
+  end
+
+
   context "A plain command that overrides the job_template set" do
     setup do
       @output = Whenever.cron \
@@ -48,6 +66,24 @@ class OutputDefaultDefinedJobsTest < Test::Unit::TestCase
 
     should "output the command using that job_template" do
       assert_match /^.+ .+ .+ .+ \/bin\/sh -l -c 'blahblah'$/, @output
+      assert_no_match /bash/, @output
+    end
+  end
+
+  context "A plain command that overrides the job_template set using a parameter" do
+    setup do
+      @output = Whenever.cron \
+      <<-file
+        set :job_template, "/bin/bash -l -c 'cd :path && :job'"
+        every 2.hours do
+          set :path, "/tmp"
+          command "blahblah", :job_template => "/bin/sh -l -c 'cd :path && :job'"
+        end
+      file
+    end
+
+    should "output the command using that job_template" do
+      assert_match /^.+ .+ .+ .+ \/bin\/sh -l -c 'cd \/tmp && blahblah'$/, @output
       assert_no_match /bash/, @output
     end
   end
@@ -107,10 +143,10 @@ class OutputDefaultDefinedJobsTest < Test::Unit::TestCase
     end
   end
 
-  context "A runner for a Rails 3 app" do
+  context "A runner for an app with bin/rails" do
     setup do
       Whenever.expects(:path).at_least_once.returns('/my/path')
-      Whenever.expects(:rails3?).returns(true)
+      Whenever.expects(:bin_rails?).returns(true)
       @output = Whenever.cron \
       <<-file
         set :job_template, nil
@@ -120,7 +156,25 @@ class OutputDefaultDefinedJobsTest < Test::Unit::TestCase
       file
     end
 
-    should "use the Rails 3 runner job by default" do
+    should "use a script/rails runner job by default" do
+      assert_match two_hours + %( cd /my/path && bin/rails runner -e production 'blahblah'), @output
+    end
+  end
+
+  context "A runner for an app with script/rails" do
+    setup do
+      Whenever.expects(:path).at_least_once.returns('/my/path')
+      Whenever.expects(:script_rails?).returns(true)
+      @output = Whenever.cron \
+      <<-file
+        set :job_template, nil
+        every 2.hours do
+          runner 'blahblah'
+        end
+      file
+    end
+
+    should "use a script/rails runner job by default" do
       assert_match two_hours + %( cd /my/path && script/rails runner -e production 'blahblah'), @output
     end
   end
